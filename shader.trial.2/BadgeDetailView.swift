@@ -21,9 +21,9 @@ struct BadgeDetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header with animated noisy gradient background
+            // Header with animated noisy gradient background and ripple effects
             ZStack {
-                NoisyGradientHeader(
+                RippleHeaderView(
                     noisePhase: noisePhase,
                     wavePhase: wavePhase,
                     achievement: achievement,
