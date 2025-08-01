@@ -202,7 +202,6 @@ struct RippleCanvas: View {
             turbulence: turbulenceIntensity * 0.8
         )
         
-        context.addFilter(.blur(radius: 8))
         context.fill(wave1, with: .color(primaryColor.opacity(0.06)))
         context.fill(wave2, with: .color(secondaryColor.opacity(0.04)))
     }
