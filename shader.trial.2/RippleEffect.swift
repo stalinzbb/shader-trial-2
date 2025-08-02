@@ -215,11 +215,11 @@ struct RippleCanvas: View {
     }
     
     private func drawSingleRipple(context: GraphicsContext, size: CGSize, ripple: TapRipple, age: TimeInterval) {
-        let rippleDuration: TimeInterval = 2.0
+        let rippleDuration: TimeInterval = 2.5
         let progress = min(age / rippleDuration, 1.0)
         
-        // Ripple parameters
-        let maxRadius: CGFloat = 150
+        // Enhanced ripple parameters for more natural water-like effect
+        let maxRadius: CGFloat = 200
         let currentRadius = CGFloat(progress) * maxRadius
         
         // Ripple center in actual coordinates
@@ -228,38 +228,59 @@ struct RippleCanvas: View {
             y: ripple.normalizedLocation.y * size.height
         )
         
-        // Create ripple effect using sine wave
-        let waveFrequency: CGFloat = 8.0
-        let waveAmplitude: CGFloat = 15.0 * (1.0 - CGFloat(progress))
+        // Progressive fading with exponential decay for natural water simulation
+        let fadingCurve = pow(1.0 - CGFloat(progress), 2.5)
         
-        // Multiple concentric ripples
-        for i in 0..<3 {
-            let ringRadius = currentRadius - CGFloat(i) * 20
-            if ringRadius > 0 {
-                drawRippleRing(
+        // Dynamic wave parameters that evolve over time
+        let waveFrequency: CGFloat = 6.0 + CGFloat(progress) * 2.0
+        let waveAmplitude: CGFloat = 20.0 * fadingCurve
+        
+        // Enhanced concentric ripples with more organic spacing
+        let rippleCount = 5
+        for i in 0..<rippleCount {
+            let ringOffset = CGFloat(i) * (15.0 + CGFloat(progress) * 10.0)
+            let ringRadius = currentRadius - ringOffset
+            
+            if ringRadius > 5 {
+                let ringFade = fadingCurve * pow(1.0 - CGFloat(i) * 0.15, 2.0)
+                let dynamicAmplitude = waveAmplitude * (1.0 - CGFloat(i) * 0.2)
+                let phaseShift = CGFloat(age) * 3.5 + CGFloat(i) * 0.8
+                
+                drawEnhancedRippleRing(
                     context: context,
                     center: center,
                     radius: ringRadius,
-                    waveAmplitude: waveAmplitude * (1.0 - CGFloat(i) * 0.3),
+                    waveAmplitude: dynamicAmplitude,
                     waveFrequency: waveFrequency,
-                    opacity: (1.0 - CGFloat(progress)) * (1.0 - CGFloat(i) * 0.4),
-                    phase: CGFloat(age) * 4.0
+                    opacity: ringFade,
+                    phase: phaseShift,
+                    ringIndex: i,
+                    progress: CGFloat(progress)
                 )
             }
         }
     }
     
-    private func drawRippleRing(context: GraphicsContext, center: CGPoint, radius: CGFloat, waveAmplitude: CGFloat, waveFrequency: CGFloat, opacity: CGFloat, phase: CGFloat) {
+    private func drawEnhancedRippleRing(context: GraphicsContext, center: CGPoint, radius: CGFloat, waveAmplitude: CGFloat, waveFrequency: CGFloat, opacity: CGFloat, phase: CGFloat, ringIndex: Int, progress: CGFloat) {
         let path = Path { path in
-            let segments = 120
+            let segments = 150
             let angleStep = 2 * CGFloat.pi / CGFloat(segments)
             
             for i in 0...segments {
                 let angle = CGFloat(i) * angleStep
                 
-                // Create sine wave distortion
-                let waveValue = sin(angle * waveFrequency + phase) * waveAmplitude
-                let distortedRadius = radius + waveValue
+                // Multi-layered wave distortions for organic flow
+                let primaryWave = sin(angle * waveFrequency + phase) * waveAmplitude
+                let secondaryWave = sin(angle * (waveFrequency * 0.3) + phase * 1.7) * waveAmplitude * 0.4
+                let tertiaryWave = cos(angle * (waveFrequency * 1.8) + phase * 0.6) * waveAmplitude * 0.2
+                
+                // Progressive wave evolution
+                let evolutionFactor = 1.0 + progress * 0.3
+                let combinedWave = (primaryWave + secondaryWave + tertiaryWave) * evolutionFactor
+                
+                // Soft edge distortion for natural water appearance
+                let edgeSoftness = sin(angle * 2.0 + phase * 0.5) * waveAmplitude * 0.1
+                let distortedRadius = radius + combinedWave + edgeSoftness
                 
                 let x = center.x + cos(angle) * distortedRadius
                 let y = center.y + sin(angle) * distortedRadius
@@ -273,20 +294,44 @@ struct RippleCanvas: View {
             path.closeSubpath()
         }
         
-        // Create gradient effect for ripple
-        let rippleColor = achievement.primaryColor.opacity(opacity * 0.3)
+        // Enhanced gradient effects with depth variation
+        let baseOpacity = opacity * (0.4 - CGFloat(ringIndex) * 0.05)
+        let strokeOpacity = opacity * (0.2 - CGFloat(ringIndex) * 0.03)
         
+        // Variable line width for depth perception
+        let lineWidth = 2.5 - CGFloat(ringIndex) * 0.3
+        
+        // Stroke with fading intensity
         context.stroke(
             path,
-            with: .color(rippleColor),
-            lineWidth: 2.0
+            with: .color(achievement.primaryColor.opacity(strokeOpacity)),
+            lineWidth: max(lineWidth, 0.5)
         )
         
-        // Add subtle fill for depth
+        // Subtle fill with radial gradient effect
+        let fillOpacity = baseOpacity * 0.15
         context.fill(
             path,
-            with: .color(achievement.secondaryColor.opacity(opacity * 0.1))
+            with: .color(achievement.secondaryColor.opacity(fillOpacity))
         )
+        
+        // Add inner glow for water-like luminescence
+        if ringIndex < 2 && opacity > 0.1 {
+            let glowPath = Path { path in
+                let glowRadius = radius * 0.85
+                path.addEllipse(in: CGRect(
+                    x: center.x - glowRadius,
+                    y: center.y - glowRadius,
+                    width: glowRadius * 2,
+                    height: glowRadius * 2
+                ))
+            }
+            
+            context.fill(
+                glowPath,
+                with: .color(achievement.primaryColor.opacity(opacity * 0.08))
+            )
+        }
     }
     
     // Helper functions from original NoisyGradientHeader

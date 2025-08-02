@@ -18,6 +18,8 @@ struct BadgeDetailView: View {
     @State private var turbulenceIntensity: CGFloat = 0
     @State private var lightingOffset: CGFloat = 0
     @State private var isPressed = false
+    @State private var badgeRotation: CGFloat = 0
+    @State private var isDragging = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,7 +64,7 @@ struct BadgeDetailView: View {
                             .saturation(1.0)
                             .scaleEffect(badgeScale)
                             .rotation3DEffect(
-                                .degrees(rotationAngle),
+                                .degrees(rotationAngle + badgeRotation),
                                 axis: (x: 0, y: 1, z: 0),
                                 perspective: 0.3
                             )
@@ -74,14 +76,18 @@ struct BadgeDetailView: View {
                                 triggerTurbulence()
                             }
                             .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { _ in
-                                        if !isPressed {
+                                DragGesture(minimumDistance: 10)
+                                    .onChanged { value in
+                                        if !isDragging {
+                                            isDragging = true
                                             triggerTurbulence()
                                         }
+                                        handleSwipeRotation(value: value)
                                     }
-                                    .onEnded { _ in
+                                    .onEnded { value in
+                                        isDragging = false
                                         releaseTurbulence()
+                                        completeRotation(value: value)
                                     }
                             )
                     }
@@ -214,6 +220,62 @@ struct BadgeDetailView: View {
             turbulenceIntensity = 0
             badgeScale = 1.0
             lightingOffset = 0
+        }
+    }
+    
+    private func handleSwipeRotation(value: DragGesture.Value) {
+        let dragDistance = value.translation.width
+        let sensitivity: CGFloat = 2.0
+        
+        // Fluid rotation following gesture movement
+        let dragRotation = dragDistance * sensitivity
+        
+        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
+            badgeRotation = dragRotation
+        }
+    }
+    
+    private func completeRotation(value: DragGesture.Value) {
+        let dragDistance = value.translation.width
+        let velocity = value.velocity.width
+        let threshold: CGFloat = 50
+        
+        // Determine rotation direction and complete full rotation
+        if abs(dragDistance) > threshold || abs(velocity) > 200 {
+            let rotationDirection: CGFloat = dragDistance > 0 ? 360 : -360
+            
+            // Smooth complete rotation with spring physics
+            withAnimation(
+                .interpolatingSpring(
+                    stiffness: 180,
+                    damping: 25,
+                    initialVelocity: Double(velocity / 100)
+                )
+            ) {
+                badgeRotation = rotationDirection
+            }
+            
+            // Reset rotation after completion with delay
+            withAnimation(
+                .interpolatingSpring(
+                    stiffness: 200,
+                    damping: 30,
+                    initialVelocity: 0
+                ).delay(0.8)
+            ) {
+                badgeRotation = 0
+            }
+        } else {
+            // Spring back to original position if threshold not met
+            withAnimation(
+                .interpolatingSpring(
+                    stiffness: 250,
+                    damping: 20,
+                    initialVelocity: Double(-velocity / 50)
+                )
+            ) {
+                badgeRotation = 0
+            }
         }
     }
 }

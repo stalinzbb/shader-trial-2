@@ -22,14 +22,6 @@ struct HomeScreenView: View {
                             
                             // Draw base gradient
                             let rect = CGRect(origin: .zero, size: size)
-                            let gradient = LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.blue.opacity(0.3),
-                                    Color.purple.opacity(0.3)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
                             
                             canvasContext.fill(Path(rect), with: .linearGradient(
                                 Gradient(colors: [
@@ -95,10 +87,10 @@ struct HomeScreenView: View {
     }
     
     private func drawHomeRipple(context: GraphicsContext, size: CGSize, ripple: TapRipple, age: TimeInterval) {
-        let rippleDuration: TimeInterval = 2.0
+        let rippleDuration: TimeInterval = 2.5
         let progress = min(age / rippleDuration, 1.0)
         
-        let maxRadius: CGFloat = 120
+        let maxRadius: CGFloat = 150
         let currentRadius = CGFloat(progress) * maxRadius
         
         let center = CGPoint(
@@ -106,25 +98,61 @@ struct HomeScreenView: View {
             y: ripple.normalizedLocation.y * size.height
         )
         
-        // Simple expanding circle ripple
-        let opacity = (1.0 - CGFloat(progress)) * 0.6
+        // Enhanced progressive fading with natural water decay
+        let fadingCurve = pow(1.0 - CGFloat(progress), 2.2)
         
-        for i in 0..<2 {
-            let ringRadius = currentRadius - CGFloat(i) * 15
-            if ringRadius > 0 {
-                let circle = Path { path in
-                    path.addEllipse(in: CGRect(
-                        x: center.x - ringRadius,
-                        y: center.y - ringRadius,
-                        width: ringRadius * 2,
-                        height: ringRadius * 2
-                    ))
+        // Organic wave distortions
+        let waveFrequency: CGFloat = 5.0 + CGFloat(progress) * 1.5
+        let waveAmplitude: CGFloat = 12.0 * fadingCurve
+        let phase = CGFloat(age) * 3.0
+        
+        // Enhanced concentric ripples with organic flow
+        for i in 0..<4 {
+            let ringOffset = CGFloat(i) * (12.0 + CGFloat(progress) * 8.0)
+            let ringRadius = currentRadius - ringOffset
+            
+            if ringRadius > 3 {
+                let ringFade = fadingCurve * pow(1.0 - CGFloat(i) * 0.2, 1.8)
+                
+                let ripplePath = Path { path in
+                    let segments = 100
+                    let angleStep = 2 * CGFloat.pi / CGFloat(segments)
+                    
+                    for j in 0...segments {
+                        let angle = CGFloat(j) * angleStep
+                        
+                        // Multi-layered wave distortions for natural water flow
+                        let primaryWave = sin(angle * waveFrequency + phase) * waveAmplitude
+                        let secondaryWave = sin(angle * (waveFrequency * 0.4) + phase * 1.5) * waveAmplitude * 0.3
+                        let organicFlow = cos(angle * 2.0 + phase * 0.7) * waveAmplitude * 0.15
+                        
+                        let distortedRadius = ringRadius + primaryWave + secondaryWave + organicFlow
+                        
+                        let x = center.x + cos(angle) * distortedRadius
+                        let y = center.y + sin(angle) * distortedRadius
+                        
+                        if j == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                    path.closeSubpath()
                 }
                 
+                // Variable stroke width for depth
+                let strokeWidth = 2.2 - CGFloat(i) * 0.3
+                
                 context.stroke(
-                    circle,
-                    with: .color(.white.opacity(opacity * (1.0 - CGFloat(i) * 0.5))),
-                    lineWidth: 2.0
+                    ripplePath,
+                    with: .color(.white.opacity(ringFade * 0.7)),
+                    lineWidth: max(strokeWidth, 0.5)
+                )
+                
+                // Subtle fill for water depth effect
+                context.fill(
+                    ripplePath,
+                    with: .color(.cyan.opacity(ringFade * 0.1))
                 )
             }
         }
