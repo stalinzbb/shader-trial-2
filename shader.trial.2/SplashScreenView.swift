@@ -10,11 +10,15 @@ import SwiftUI
 struct SplashScreenView: View {
     @State private var showHomeScreen = false
     @State private var splashOffset: CGFloat = 0
+    @State private var logoOffset: CGFloat = 0
+    @State private var homeScreenOffset: CGFloat = UIScreen.main.bounds.width
     
     var body: some View {
         ZStack {
+            // HomeScreen with slide-in animation from right
             if showHomeScreen {
                 HomeScreenView()
+                    .offset(x: homeScreenOffset)
             }
             
             // Splash screen with slide-out animation
@@ -30,8 +34,9 @@ struct SplashScreenView: View {
                         endPoint: .bottomTrailing
                     )
                     .ignoresSafeArea()
+                    .offset(x: splashOffset)
                     
-                    // Centered splash logo
+                    // Centered splash logo with parallax effect
                     VStack {
                         Spacer()
                         Image("splash-s")
@@ -40,13 +45,29 @@ struct SplashScreenView: View {
                             .frame(width: 200, height: 200)
                         Spacer()
                     }
+                    .offset(x: logoOffset)
                 }
-                .offset(x: splashOffset)
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        withAnimation(.easeInOut(duration: 0.8)) {
-                            splashOffset = -UIScreen.main.bounds.width
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        // Start logo parallax animation first - smoother spring animation
+                        withAnimation(.interpolatingSpring(stiffness: 100, damping: 20, initialVelocity: 0)) {
+                            logoOffset = -UIScreen.main.bounds.width * 0.2
+                        }
+                        
+                        // Start main transition after logo begins moving
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                             showHomeScreen = true
+                            
+                            // Splash screen slides out with quicker, smoother easing
+                            withAnimation(.easeInOut(duration: 0.6).speed(1.2)) {
+                                splashOffset = -UIScreen.main.bounds.width
+                                logoOffset = -UIScreen.main.bounds.width
+                            }
+                            
+                            // HomeScreen slides in from right - starts immediately (no delay)
+                            withAnimation(.easeOut(duration: 0.6)) {
+                                homeScreenOffset = 0
+                            }
                         }
                     }
                 }
@@ -54,7 +75,6 @@ struct SplashScreenView: View {
         }
     }
 }
-
 
 #Preview {
     SplashScreenView()
