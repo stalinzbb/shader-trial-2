@@ -186,7 +186,7 @@ struct BadgeDetailView: View {
             .interpolatingSpring(stiffness: 150, damping: 12, initialVelocity: 4)
             .delay(0.2)
         ) {
-            bounceOffset = -38  // Higher bounce
+            bounceOffset = -44  // Even higher bounce
             badgeScale = 1.08   // More scale
         }
         
