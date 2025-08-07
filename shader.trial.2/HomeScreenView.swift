@@ -9,74 +9,55 @@ import SwiftUI
 
 struct HomeScreenView: View {
     @State private var showAchievements = false
-    @StateObject private var rippleManager = RippleManager()
     
     var body: some View {
         NavigationView {
-            GeometryReader { geometry in
-                ZStack {
-                    // Interactive ripple background
-                    TimelineView(.animation) { context in
-                        Canvas { canvasContext, size in
-                            let currentTime = CACurrentMediaTime()
+            ZStack {
+                // White background
+                Color.white
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Header Section
+                    VStack(spacing: 8) {
+                        Text("Interaction Explorer")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("Checkout our interactions")
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 60)
+                    .padding(.horizontal, 20)
+                    
+                    // Cards Section
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            // Achievements Card
+                            InteractionCard(
+                                title: "Achievements Ripple Effect",
+                                thumbnailImageName: "achievement-badge-1"
+                            ) {
+                                showAchievements = true
+                            }
                             
-                            // Draw base gradient
-                            let rect = CGRect(origin: .zero, size: size)
-                            
-                            canvasContext.fill(Path(rect), with: .linearGradient(
-                                Gradient(colors: [
-                                    Color.blue.opacity(0.3),
-                                    Color.purple.opacity(0.3)
-                                ]),
-                                startPoint: CGPoint(x: 0, y: 0),
-                                endPoint: CGPoint(x: size.width, y: size.height)
-                            ))
-                            
-                            // Draw ripples
-                            let activeRipples = rippleManager.activeRipples(at: currentTime)
-                            for (ripple, age) in activeRipples {
-                                drawHomeRipple(context: canvasContext, size: size, ripple: ripple, age: age)
+                            // Placeholder for future cards
+                            InteractionCard(
+                                title: "Coming Soon",
+                                thumbnailImageName: "achievement-badge-2"
+                            ) {
+                                // Future interaction
                             }
                         }
+                        .padding(.horizontal, 20)
                     }
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        rippleManager.addRipple(at: location, in: geometry.frame(in: .local))
-                    }
-                
-                    VStack {
-                        Spacer()
-                        
-                        Button(action: {
-                            showAchievements = true
-                        }) {
-                            Text("View Achievements")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 40)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .fill(
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [
-                                                    Color.purple,
-                                                    Color.blue
-                                                ]),
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                                )
-                        }
-                        .scaleEffect(1.0)
-                        .animation(.easeInOut(duration: 0.1), value: showAchievements)
-                        
-                        Spacer()
-                    }
+                    .padding(.top, 40)
+                    
+                    Spacer()
                 }
             }
         }
@@ -85,77 +66,62 @@ struct HomeScreenView: View {
             AchievementsView()
         }
     }
+}
+
+struct InteractionCard: View {
+    let title: String
+    let thumbnailImageName: String
+    let action: () -> Void
+    @State private var isPressed = false
     
-    private func drawHomeRipple(context: GraphicsContext, size: CGSize, ripple: TapRipple, age: TimeInterval) {
-        let rippleDuration: TimeInterval = 2.5
-        let progress = min(age / rippleDuration, 1.0)
-        
-        let maxRadius: CGFloat = 150
-        let currentRadius = CGFloat(progress) * maxRadius
-        
-        let center = CGPoint(
-            x: ripple.normalizedLocation.x * size.width,
-            y: ripple.normalizedLocation.y * size.height
-        )
-        
-        // Enhanced progressive fading with natural water decay
-        let fadingCurve = pow(1.0 - CGFloat(progress), 2.2)
-        
-        // Organic wave distortions
-        let waveFrequency: CGFloat = 5.0 + CGFloat(progress) * 1.5
-        let waveAmplitude: CGFloat = 12.0 * fadingCurve
-        let phase = CGFloat(age) * 3.0
-        
-        // Enhanced concentric ripples with organic flow
-        for i in 0..<4 {
-            let ringOffset = CGFloat(i) * (12.0 + CGFloat(progress) * 8.0)
-            let ringRadius = currentRadius - ringOffset
-            
-            if ringRadius > 3 {
-                let ringFade = fadingCurve * pow(1.0 - CGFloat(i) * 0.2, 1.8)
-                
-                let ripplePath = Path { path in
-                    let segments = 100
-                    let angleStep = 2 * CGFloat.pi / CGFloat(segments)
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // Thumbnail
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: 60, height: 60)
                     
-                    for j in 0...segments {
-                        let angle = CGFloat(j) * angleStep
-                        
-                        // Multi-layered wave distortions for natural water flow
-                        let primaryWave = sin(angle * waveFrequency + phase) * waveAmplitude
-                        let secondaryWave = sin(angle * (waveFrequency * 0.4) + phase * 1.5) * waveAmplitude * 0.3
-                        let organicFlow = cos(angle * 2.0 + phase * 0.7) * waveAmplitude * 0.15
-                        
-                        let distortedRadius = ringRadius + primaryWave + secondaryWave + organicFlow
-                        
-                        let x = center.x + cos(angle) * distortedRadius
-                        let y = center.y + sin(angle) * distortedRadius
-                        
-                        if j == 0 {
-                            path.move(to: CGPoint(x: x, y: y))
-                        } else {
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                    }
-                    path.closeSubpath()
+                    Image(thumbnailImageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 40, height: 40)
                 }
                 
-                // Variable stroke width for depth
-                let strokeWidth = 2.2 - CGFloat(i) * 0.3
+                // Title
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(.leading)
                 
-                context.stroke(
-                    ripplePath,
-                    with: .color(.white.opacity(ringFade * 0.7)),
-                    lineWidth: max(strokeWidth, 0.5)
-                )
+                Spacer()
                 
-                // Subtle fill for water depth effect
-                context.fill(
-                    ripplePath,
-                    with: .color(.cyan.opacity(ringFade * 0.1))
-                )
+                // Caret
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .shadow(
+                        color: .black.opacity(0.08),
+                        radius: 8,
+                        x: 0,
+                        y: 2
+                    )
+            )
         }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 
