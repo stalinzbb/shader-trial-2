@@ -10,27 +10,23 @@ import SwiftUI
 struct BadgeDetailView: View {
     let achievement: Achievement
     @Environment(\.presentationMode) var presentationMode
-    @State private var noisePhase: CGFloat = 0
-    @State private var wavePhase: CGFloat = 0
     @State private var rotationAngle: Double = 0
     @State private var bounceOffset: CGFloat = 0
     @State private var badgeScale: CGFloat = 1.0
-    @State private var turbulenceIntensity: CGFloat = 0
-    @State private var lightingOffset: CGFloat = 0
-    @State private var isPressed = false
     @State private var badgeRotation: CGFloat = 0
     @State private var isDragging = false
+    @State private var isPressed = false
+    
+    // Metal ripple shader states
+    @State private var rippleOrigin: CGPoint = CGPoint(x: 70, y: 70)
+    @State private var rippleStartTime: TimeInterval = 0
+    @State private var rippleActive = false
     
     var body: some View {
         VStack(spacing: 0) {
             // Header with animated noisy gradient background and ripple effects
             ZStack {
-                RippleHeaderView(
-                    noisePhase: noisePhase,
-                    wavePhase: wavePhase,
-                    achievement: achievement,
-                    turbulenceIntensity: turbulenceIntensity
-                )
+                DynamicGradientBackground(achievement: achievement)
                 .frame(height: 320)
                 .clipped()
                 
@@ -56,38 +52,57 @@ struct BadgeDetailView: View {
                             .blur(radius: 20)
                             .opacity(isPressed ? 0.8 : 0.4)
                         
-                        Image(achievement.badgeImageName)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 140, height: 140)
-                            .opacity(1.0)
-                            .saturation(1.0)
-                            .scaleEffect(badgeScale)
-                            .rotation3DEffect(
-                                .degrees(rotationAngle + badgeRotation),
-                                axis: (x: 0, y: 1, z: 0),
-                                perspective: 0.3
-                            )
-                            .offset(y: bounceOffset)
-                            .offset(x: lightingOffset * 2, y: lightingOffset)
-                            .brightness(isPressed ? 0.1 : 0)
-                            .contrast(isPressed ? 1.1 : 1.0)
-                            .onTapGesture {
-                                triggerTurbulence()
+                        TimelineView(.animation) { context in
+                            Image(achievement.badgeImageName)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 140, height: 140)
+                                .opacity(1.0)
+                                .saturation(1.0)
+                                .scaleEffect(badgeScale)
+                                .rotation3DEffect(
+                                    .degrees(rotationAngle + badgeRotation),
+                                    axis: (x: 0, y: 1, z: 0),
+                                    perspective: 0.3
+                                )
+                                .offset(y: bounceOffset)
+                                .layerEffect(
+                                    ShaderLibrary.Ripple(
+                                        .float2(rippleOrigin),
+                                        .float(context.date.timeIntervalSince1970 - rippleStartTime),
+                                        .float(8.0),      // amplitude
+                                        .float(15.0),     // frequency
+                                        .float(5.0),      // decay
+                                        .float(400.0)     // speed
+                                    ),
+                                    maxSampleOffset: CGSize(width: 20, height: 20),
+                                    isEnabled: rippleActive
+                                )
+                                .onChange(of: context.date) { _, newDate in
+                                    let currentTime = newDate.timeIntervalSince1970
+                                    let elapsedTime = currentTime - rippleStartTime
+                                    
+                                    if rippleActive && elapsedTime < 2.0 {
+                                        // Continue ripple animation
+                                    } else if elapsedTime >= 2.0 {
+                                        rippleActive = false
+                                    }
+                                }
+                        }
+                            .onTapGesture { location in
+                                triggerRippleEffect(at: location)
                             }
                             .gesture(
-                                DragGesture(minimumDistance: 10)
+                                DragGesture(minimumDistance: 5)
                                     .onChanged { value in
                                         if !isDragging {
                                             isDragging = true
-                                            triggerTurbulence()
                                         }
-                                        handleSwipeRotation(value: value)
+                                        handleNaturalRotation(value: value)
                                     }
                                     .onEnded { value in
                                         isDragging = false
-                                        releaseTurbulence()
-                                        completeRotation(value: value)
+                                        snapToNearestFace(value: value)
                                     }
                             )
                     }
@@ -102,7 +117,7 @@ struct BadgeDetailView: View {
                     Text(achievement.title)
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.black)
+                        .foregroundColor(.appText)
                         .multilineTextAlignment(.center)
                     
                     if achievement.isUnlocked {
@@ -136,7 +151,7 @@ struct BadgeDetailView: View {
                     VStack(spacing: 8) {
                         Text("Progress")
                             .font(.headline)
-                            .foregroundColor(.black)
+                            .foregroundColor(.appText)
                         
                         ProgressView(value: achievement.progress)
                             .progressViewStyle(LinearProgressViewStyle())
@@ -153,26 +168,19 @@ struct BadgeDetailView: View {
                 Spacer()
             }
             .padding(.top, 30)
-            .background(Color.white)
+            .background(Color.appBackground)
         }
+        .background(Color.appBackground)
         .onAppear {
             startAnimations()
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .ignoresSafeArea(edges: .top)
+        .presentationBackground(.clear)
+        .ignoresSafeArea()
     }
     
     private func startAnimations() {
-        // Continuous noise animation
-        withAnimation(.linear(duration: 4.0).repeatForever(autoreverses: false)) {
-            noisePhase = 2 * .pi
-        }
-        
-        // Continuous wave animation
-        withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
-            wavePhase = 2 * .pi
-        }
         
         // Smooth, natural rotation with easing
         withAnimation(
@@ -201,82 +209,93 @@ struct BadgeDetailView: View {
         }
     }
     
-    private func triggerTurbulence() {
-        guard !isPressed else { return }
-        isPressed = true
-        
-        withAnimation(.easeOut(duration: 0.15)) {
-            turbulenceIntensity = 1.0
-            badgeScale = 0.95
-            lightingOffset = 2.0
-        }
-    }
-    
-    private func releaseTurbulence() {
-        guard isPressed else { return }
-        isPressed = false
-        
-        withAnimation(.interpolatingSpring(stiffness: 300, damping: 20, initialVelocity: 5)) {
-            turbulenceIntensity = 0
-            badgeScale = 1.0
-            lightingOffset = 0
-        }
-    }
-    
-    private func handleSwipeRotation(value: DragGesture.Value) {
+    private func handleNaturalRotation(value: DragGesture.Value) {
         let dragDistance = value.translation.width
-        let sensitivity: CGFloat = 2.0
+        let dragVelocity = value.velocity.width
         
-        // Fluid rotation following gesture movement
-        let dragRotation = dragDistance * sensitivity
+        // Reduced sensitivity to prevent excessive rotation
+        let baseSensitivity: CGFloat = 0.6 // Reduced from 1.2
+        let maxVelocityInfluence: CGFloat = 1.5 // Cap to prevent super fast rotations
+        let velocityFactor = min(abs(dragVelocity) / 800.0, maxVelocityInfluence)
+        let dynamicSensitivity = baseSensitivity * (0.4 + velocityFactor * 0.3)
         
-        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
-            badgeRotation = dragRotation
+        // Calculate rotation with natural feel and speed limiting
+        let rawRotation = dragDistance * dynamicSensitivity
+        
+        // Limit maximum rotation to prevent multiple spins during drag
+        let maxRotationDuringDrag: CGFloat = 180 // Max half rotation during drag
+        let targetRotation = max(-maxRotationDuringDrag, min(maxRotationDuringDrag, rawRotation))
+        
+        // Natural springy animation that responds to drag characteristics
+        let dragIntensity = min(abs(dragVelocity) / 400.0, 1.0)
+        let springResponse = 0.3 + (dragIntensity * 0.2) // More responsive for faster drags
+        let springDamping = 0.65 + (dragIntensity * 0.15) // Less bouncy for faster drags
+        
+        withAnimation(.interactiveSpring(
+            response: springResponse,
+            dampingFraction: springDamping,
+            blendDuration: 0.08
+        )) {
+            badgeRotation = targetRotation
         }
     }
     
-    private func completeRotation(value: DragGesture.Value) {
-        let dragDistance = value.translation.width
+    private func snapToNearestFace(value: DragGesture.Value) {
+        let currentRotation = badgeRotation
         let velocity = value.velocity.width
-        let threshold: CGFloat = 50
         
-        // Determine rotation direction and complete full rotation
-        if abs(dragDistance) > threshold || abs(velocity) > 200 {
-            let rotationDirection: CGFloat = dragDistance > 0 ? 360 : -360
-            
-            // Smooth complete rotation with spring physics
-            withAnimation(
-                .interpolatingSpring(
-                    stiffness: 180,
-                    damping: 25,
-                    initialVelocity: Double(velocity / 100)
-                )
-            ) {
-                badgeRotation = rotationDirection
-            }
-            
-            // Reset rotation after completion with delay
-            withAnimation(
-                .interpolatingSpring(
-                    stiffness: 200,
-                    damping: 30,
-                    initialVelocity: 0
-                ).delay(0.8)
-            ) {
-                badgeRotation = 0
-            }
+        // More conservative velocity threshold to prevent excessive spinning
+        let velocityInfluence = velocity / 25.0 // Increased from 15.0
+        let rotationThreshold: CGFloat = 60 // Degrees needed to trigger full rotation
+        let velocityThreshold: CGFloat = 12 // Increased threshold for full rotation
+        
+        let shouldCompleteRotation = abs(velocityInfluence) > velocityThreshold && abs(currentRotation) > rotationThreshold
+        
+        let finalTarget: CGFloat
+        if shouldCompleteRotation {
+            // Complete rotation in direction of momentum, but limit to single rotation
+            finalTarget = currentRotation > 0 ? 360 : -360
         } else {
-            // Spring back to original position if threshold not met
+            // Gentle snap back to face-forward with natural spring
+            finalTarget = 0
+        }
+        
+        // Natural springy snap-back animation
+        let springStiffness = shouldCompleteRotation ? 200.0 : 180.0 // Softer for direct snap
+        let springDamping = shouldCompleteRotation ? 22.0 : 18.0 // More bounce for direct snap
+        let initialVel = shouldCompleteRotation ? Double(velocity / 150) : Double(velocity / 200)
+        
+        withAnimation(
+            .interpolatingSpring(
+                stiffness: springStiffness,
+                damping: springDamping,
+                initialVelocity: initialVel
+            )
+        ) {
+            badgeRotation = finalTarget
+        }
+        
+        // If completed full rotation, gentle spring back to face-forward
+        if shouldCompleteRotation {
             withAnimation(
                 .interpolatingSpring(
-                    stiffness: 250,
-                    damping: 20,
-                    initialVelocity: Double(-velocity / 50)
-                )
+                    stiffness: 120,
+                    damping: 15,
+                    initialVelocity: 0
+                ).delay(0.4)
             ) {
                 badgeRotation = 0
             }
         }
+    }
+    
+    private func triggerRippleEffect(at location: CGPoint) {
+        // Set ripple origin to tap location relative to badge center
+        rippleOrigin = location
+        
+        // Start ripple animation
+        rippleStartTime = Date().timeIntervalSince1970
+        rippleActive = true
     }
 }
 

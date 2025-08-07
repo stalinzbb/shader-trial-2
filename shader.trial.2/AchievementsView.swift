@@ -40,7 +40,7 @@ struct AchievementsView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white
+                Color.appBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -48,7 +48,7 @@ struct AchievementsView: View {
                         Text("Achievements")
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundColor(.black)
+                            .foregroundColor(.appText)
                             .padding(.top, 20)
                         
                         let columns = [
@@ -76,7 +76,7 @@ struct AchievementsView: View {
                     Button("Close") {
                         presentationMode.wrappedValue.dismiss()
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(.appText)
                 }
             }
         }
@@ -103,7 +103,7 @@ struct AchievementBadge: View {
             Text(achievement.title)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.black)
+                .foregroundColor(.appText)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
