@@ -6,73 +6,78 @@
 //
 
 import SwiftUI
+import CoreMotion
 
 struct AccelerometerBadgeDetailView: View {
     let achievement: Achievement
     @Environment(\.presentationMode) var presentationMode
-    @State private var rotationAngle: Double = 0
-    @State private var bounceOffset: CGFloat = 0
-    @State private var badgeScale: CGFloat = 1.0
-    @State private var badgeRotation: CGFloat = 0
-    @State private var isDragging = false
+    @State private var pitchRotation: Double = 0
+    @State private var rollRotation: Double = 0
+    @State private var gradientOffset: Double = -350 // Start off-screen (further back for larger rectangle)
+    private let motionManager = CMMotionManager()
+    
+    // Check if this badge should have gradient shimmer effect (badges 7-12)
+    private var shouldShowGradientShimmer: Bool {
+        let badgeNumber = Int(achievement.badgeImageName.replacingOccurrences(of: "achievement-badge-", with: "")) ?? 0
+        return badgeNumber >= 7 && badgeNumber <= 12
+    }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header with static background
+            // Header with badge area - always white background
             ZStack {
-                Color(hex: "e9ebed")
+                Color.white
                     .frame(height: 320)
                     .clipped()
                 
                 VStack {
                     Spacer()
                     
-                    // Interactive Animated Badge (no ripple effects)
+                    // Accelerometer-controlled Badge with optional gradient shimmer
                     ZStack {
-                        // Subtle glow effect
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    gradient: Gradient(colors: [
-                                        achievement.primaryColor.opacity(0.3),
-                                        Color.clear
-                                    ]),
-                                    center: .center,
-                                    startRadius: 0,
-                                    endRadius: 80
-                                )
-                            )
-                            .frame(width: 160, height: 160)
-                            .blur(radius: 20)
-                            .opacity(0.4)
-                        
                         Image(achievement.badgeImageName)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 140, height: 140)
-                            .opacity(1.0)
-                            .saturation(1.0)
-                            .scaleEffect(badgeScale)
-                            .rotation3DEffect(
-                                .degrees(rotationAngle + badgeRotation),
-                                axis: (x: 0, y: 1, z: 0),
-                                perspective: 0.3
-                            )
-                            .offset(y: bounceOffset)
-                            .gesture(
-                                DragGesture(minimumDistance: 5)
-                                    .onChanged { value in
-                                        if !isDragging {
-                                            isDragging = true
-                                        }
-                                        handleNaturalRotation(value: value)
-                                    }
-                                    .onEnded { value in
-                                        isDragging = false
-                                        snapToNearestFace(value: value)
-                                    }
-                            )
+                            .frame(width: shouldShowGradientShimmer ? 160 : 140, 
+                                   height: shouldShowGradientShimmer ? 160 : 140)
+                        
+                        // Gradient shimmer overlay for badges 7-12
+                        if shouldShowGradientShimmer {
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.0),
+                                            Color.white.opacity(0.3),
+                                            Color.white.opacity(0.7),
+                                            Color.white.opacity(1.0),
+                                            Color.white.opacity(0.7),
+                                            Color.white.opacity(0.3),
+                                            Color.white.opacity(0.0)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 120, height: 500) // Even larger rectangle to cover entire badge
+                                .offset(x: gradientOffset, y: 0) // Move horizontally first
+                                .rotationEffect(.degrees(45)) // Then rotate 45 degrees - this creates diagonal movement
+                                .blendMode(.overlay)
+                                .opacity(0.7)
+                                .clipShape(RoundedRectangle(cornerRadius: 80))
+                                .frame(width: 160, height: 160)
+                        }
                     }
+                    .rotation3DEffect(
+                        .degrees(pitchRotation),
+                        axis: (x: 1, y: 0, z: 0),
+                        perspective: 0.3
+                    )
+                    .rotation3DEffect(
+                        .degrees(rollRotation),
+                        axis: (x: 0, y: 1, z: 0),
+                        perspective: 0.3
+                    )
                     
                     Spacer()
                 }
@@ -84,7 +89,7 @@ struct AccelerometerBadgeDetailView: View {
                     Text(achievement.title)
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.appText)
+                        .foregroundColor(Color(hex: "333333"))
                         .multilineTextAlignment(.center)
                     
                     if achievement.isUnlocked {
@@ -110,7 +115,7 @@ struct AccelerometerBadgeDetailView: View {
                 
                 Text(achievement.description)
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(hex: "757575"))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
                 
@@ -118,7 +123,7 @@ struct AccelerometerBadgeDetailView: View {
                     VStack(spacing: 8) {
                         Text("Progress")
                             .font(.headline)
-                            .foregroundColor(.appText)
+                            .foregroundColor(Color(hex: "757575"))
                         
                         ProgressView(value: achievement.progress)
                             .progressViewStyle(LinearProgressViewStyle())
@@ -127,7 +132,7 @@ struct AccelerometerBadgeDetailView: View {
                         
                         Text("\(Int(achievement.progress * 100))% Complete")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color(hex: "757575"))
                     }
                     .padding(.horizontal, 30)
                 }
@@ -135,11 +140,14 @@ struct AccelerometerBadgeDetailView: View {
                 Spacer()
             }
             .padding(.top, 30)
-            .background(Color.appBackground)
+            .background(Color(hex: "f8f8fa"))
         }
-        .background(Color.appBackground)
+        .background(Color.white)
         .onAppear {
-            startAnimations()
+            startAccelerometerUpdates()
+        }
+        .onDisappear {
+            stopAccelerometerUpdates()
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -147,112 +155,69 @@ struct AccelerometerBadgeDetailView: View {
         .ignoresSafeArea()
     }
     
-    private func startAnimations() {
-        // Smooth, natural rotation with easing
-        withAnimation(
-            .easeInOut(duration: 1.8)
-            .delay(0.4)
-        ) {
-            rotationAngle = 360
+    private func startAccelerometerUpdates() {
+        guard motionManager.isDeviceMotionAvailable else {
+            print("Device motion is not available")
+            return
         }
         
-        // Synchronized natural bounce and scale
-        withAnimation(
-            .interpolatingSpring(stiffness: 120, damping: 15, initialVelocity: 2)
-            .delay(0.4)
-        ) {
-            bounceOffset = -18
-            badgeScale = 1.05
-        }
+        motionManager.deviceMotionUpdateInterval = 1.0 / 60.0 // 60 Hz updates
         
-        // Smooth settle back to natural position
-        withAnimation(
-            .interpolatingSpring(stiffness: 180, damping: 20, initialVelocity: 1)
-            .delay(1.0)
-        ) {
-            bounceOffset = 0
-            badgeScale = 1.0
-        }
-    }
-    
-    private func handleNaturalRotation(value: DragGesture.Value) {
-        let dragDistance = value.translation.width
-        let dragVelocity = value.velocity.width
-        
-        // Reduced sensitivity to prevent excessive rotation
-        let baseSensitivity: CGFloat = 0.6
-        let maxVelocityInfluence: CGFloat = 1.5
-        let velocityFactor = min(abs(dragVelocity) / 800.0, maxVelocityInfluence)
-        let dynamicSensitivity = baseSensitivity * (0.4 + velocityFactor * 0.3)
-        
-        // Calculate rotation with natural feel and speed limiting
-        let rawRotation = dragDistance * dynamicSensitivity
-        
-        // Limit maximum rotation to prevent multiple spins during drag
-        let maxRotationDuringDrag: CGFloat = 180
-        let targetRotation = max(-maxRotationDuringDrag, min(maxRotationDuringDrag, rawRotation))
-        
-        // Natural springy animation that responds to drag characteristics
-        let dragIntensity = min(abs(dragVelocity) / 400.0, 1.0)
-        let springResponse = 0.3 + (dragIntensity * 0.2)
-        let springDamping = 0.65 + (dragIntensity * 0.15)
-        
-        withAnimation(.interactiveSpring(
-            response: springResponse,
-            dampingFraction: springDamping,
-            blendDuration: 0.08
-        )) {
-            badgeRotation = targetRotation
-        }
-    }
-    
-    private func snapToNearestFace(value: DragGesture.Value) {
-        let currentRotation = badgeRotation
-        let velocity = value.velocity.width
-        
-        // More conservative velocity threshold to prevent excessive spinning
-        let velocityInfluence = velocity / 25.0
-        let rotationThreshold: CGFloat = 60
-        let velocityThreshold: CGFloat = 12
-        
-        let shouldCompleteRotation = abs(velocityInfluence) > velocityThreshold && abs(currentRotation) > rotationThreshold
-        
-        let finalTarget: CGFloat
-        if shouldCompleteRotation {
-            // Complete rotation in direction of momentum, but limit to single rotation
-            finalTarget = currentRotation > 0 ? 360 : -360
-        } else {
-            // Gentle snap back to face-forward with natural spring
-            finalTarget = 0
-        }
-        
-        // Natural springy snap-back animation
-        let springStiffness = shouldCompleteRotation ? 200.0 : 180.0
-        let springDamping = shouldCompleteRotation ? 22.0 : 18.0
-        let initialVel = shouldCompleteRotation ? Double(velocity / 150) : Double(velocity / 200)
-        
-        withAnimation(
-            .interpolatingSpring(
-                stiffness: springStiffness,
-                damping: springDamping,
-                initialVelocity: initialVel
-            )
-        ) {
-            badgeRotation = finalTarget
-        }
-        
-        // If completed full rotation, gentle spring back to face-forward
-        if shouldCompleteRotation {
-            withAnimation(
-                .interpolatingSpring(
-                    stiffness: 120,
-                    damping: 15,
-                    initialVelocity: 0
-                ).delay(0.4)
-            ) {
-                badgeRotation = 0
+        motionManager.startDeviceMotionUpdates(to: .main) { [self] (motion, error) in
+            guard let motion = motion, error == nil else {
+                print("Error getting device motion: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            // Convert pitch and roll from radians to degrees
+            let pitchInDegrees = motion.attitude.pitch * 180.0 / .pi
+            let rollInDegrees = motion.attitude.roll * 180.0 / .pi
+            
+            // Clamp values for optimal motion feel
+            let clampedPitch = max(-8.0, min(8.0, pitchInDegrees))    // Further reduced pitch movement
+            let clampedRoll = max(-45.0, min(45.0, rollInDegrees))    // Increased roll angle by 10°
+            
+            // Apply different animation speeds for pitch and roll
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0)) {
+                pitchRotation = clampedPitch  // X-axis rotation (tilt up/down)
+            }
+            
+            withAnimation(.spring(response: 0.15, dampingFraction: 0.5, blendDuration: 0)) {
+                rollRotation = clampedRoll    // Y-axis rotation (tilt left/right) - faster animation
+            }
+            
+            // Update gradient shimmer effect based on accelerometer data (only for shimmer badges)
+            if shouldShowGradientShimmer {
+                // Convert combined motion to trigger shimmer flash
+                let motionMagnitude = sqrt(clampedPitch * clampedPitch + clampedRoll * clampedRoll)
+                
+                // Trigger shimmer flash on significant motion (threshold ~15 degrees)
+                if motionMagnitude > 15.0 {
+                    // Slower diagonal flash across badge at 45°
+                    withAnimation(.spring(response: 1.0, dampingFraction: 0.8, blendDuration: 0)) {
+                        gradientOffset = 350 // Flash across to opposite corner
+                    }
+                    
+                    // Reset position after flash completes (longer duration)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            gradientOffset = -350 // Reset to starting corner off-screen
+                        }
+                    }
+                } else {
+                    // Keep gradient off-screen during subtle movements
+                    if gradientOffset > -300 {
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            gradientOffset = -350
+                        }
+                    }
+                }
             }
         }
+    }
+    
+    private func stopAccelerometerUpdates() {
+        motionManager.stopDeviceMotionUpdates()
     }
 }
 

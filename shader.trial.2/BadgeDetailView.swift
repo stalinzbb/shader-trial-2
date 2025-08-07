@@ -181,31 +181,47 @@ struct BadgeDetailView: View {
     }
     
     private func startAnimations() {
-        
-        // Smooth, natural rotation with easing
+        // Faster, more energetic bounce with spring effects
         withAnimation(
-            .easeInOut(duration: 1.8)
-            .delay(0.4)
+            .interpolatingSpring(stiffness: 150, damping: 12, initialVelocity: 4)
+            .delay(0.2)
         ) {
-            rotationAngle = 360
+            bounceOffset = -38  // Higher bounce
+            badgeScale = 1.08   // More scale
         }
         
-        // Synchronized natural bounce and scale (no delay, starts with rotation)
+        // Faster settle back to natural position with bouncy spring
         withAnimation(
-            .interpolatingSpring(stiffness: 120, damping: 15, initialVelocity: 2)
-            .delay(0.4)
-        ) {
-            bounceOffset = -18
-            badgeScale = 1.05
-        }
-        
-        // Smooth settle back to natural position
-        withAnimation(
-            .interpolatingSpring(stiffness: 180, damping: 20, initialVelocity: 1)
-            .delay(1.0)
+            .interpolatingSpring(stiffness: 180, damping: 16, initialVelocity: 0)
+            .delay(0.7)
         ) {
             bounceOffset = 0
             badgeScale = 1.0
+        }
+        
+        // Faster rotation with smooth speed variations
+        // Phase 1: Moderately slow start (bottom of bounce)
+        withAnimation(
+            .easeIn(duration: 0.3).speed(1.2)
+            .delay(0.2)
+        ) {
+            rotationAngle = 120  // First third - moderately slow but faster
+        }
+        
+        // Phase 2: Faster speed (middle to top of bounce)  
+        withAnimation(
+            .linear(duration: 0.25)
+            .delay(0.5)
+        ) {
+            rotationAngle = 240  // Fast middle section
+        }
+        
+        // Phase 3: Moderately slow finish (back to bottom)
+        withAnimation(
+            .easeOut(duration: 0.35).speed(1.2)
+            .delay(0.75)
+        ) {
+            rotationAngle = 360  // Moderately slow finish but faster
         }
     }
     

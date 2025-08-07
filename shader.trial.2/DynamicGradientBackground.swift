@@ -32,7 +32,6 @@ struct DynamicGradientBackground: View {
                 
                 // Animated overlays for movement effect
                 ForEach(0..<3, id: \.self) { index in
-                    let offset = CGFloat(index) * 120.0
                     let timeOffset = currentTime * 0.3 + Double(index) * 0.8
                     
                     RadialGradient(
