@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeScreenView: View {
     @State private var showAchievements = false
+    @State private var showAccelerometer = false
     
     var body: some View {
         NavigationView {
@@ -45,12 +46,12 @@ struct HomeScreenView: View {
                                 showAchievements = true
                             }
                             
-                            // Placeholder for future cards
+                            // Accelerometer Card
                             InteractionCard(
-                                title: "Coming Soon",
-                                thumbnailImageName: "achievement-badge-2"
+                                title: "Achievement Badge 3D Accelerometer",
+                                thumbnailImageName: "achievement-badge-3"
                             ) {
-                                // Future interaction
+                                showAccelerometer = true
                             }
                         }
                         .padding(.horizontal, 20)
@@ -64,6 +65,9 @@ struct HomeScreenView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showAchievements) {
             AchievementsView()
+        }
+        .sheet(isPresented: $showAccelerometer) {
+            AccelerometerView()
         }
     }
 }
