@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeScreenView: View {
     @State private var showAchievements = false
     @State private var showAccelerometer = false
+    @State private var showFireworks = false
     
     var body: some View {
         NavigationView {
@@ -53,6 +54,14 @@ struct HomeScreenView: View {
                             ) {
                                 showAccelerometer = true
                             }
+                            
+                            // Fireworks Card
+                            InteractionCard(
+                                title: "Achievement Fireworks Effect",
+                                thumbnailImageName: "achievement-badge-5"
+                            ) {
+                                showFireworks = true
+                            }
                         }
                         .padding(.horizontal, 20)
                     }
@@ -68,6 +77,9 @@ struct HomeScreenView: View {
         }
         .sheet(isPresented: $showAccelerometer) {
             AccelerometerView()
+        }
+        .sheet(isPresented: $showFireworks) {
+            AchievementsFireworksView()
         }
     }
 }

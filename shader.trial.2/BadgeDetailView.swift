@@ -22,6 +22,12 @@ struct BadgeDetailView: View {
     @State private var rippleStartTime: TimeInterval = 0
     @State private var rippleActive = false
     
+    // Ripple property controls with default values
+    @State private var amplitude: Float = 8.0
+    @State private var frequency: Float = 15.0
+    @State private var decay: Float = 5.0
+    @State private var speed: Float = 400.0
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header with animated noisy gradient background and ripple effects
@@ -70,10 +76,10 @@ struct BadgeDetailView: View {
                                     ShaderLibrary.Ripple(
                                         .float2(rippleOrigin),
                                         .float(context.date.timeIntervalSince1970 - rippleStartTime),
-                                        .float(8.0),      // amplitude
-                                        .float(15.0),     // frequency
-                                        .float(5.0),      // decay
-                                        .float(400.0)     // speed
+                                        .float(amplitude),
+                                        .float(frequency),
+                                        .float(decay),
+                                        .float(speed)
                                     ),
                                     maxSampleOffset: CGSize(width: 20, height: 20),
                                     isEnabled: rippleActive
@@ -120,50 +126,95 @@ struct BadgeDetailView: View {
                         .foregroundColor(.appText)
                         .multilineTextAlignment(.center)
                     
-                    if achievement.isUnlocked {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("Unlocked")
-                                .font(.subheadline)
-                                .foregroundColor(.green)
-                                .fontWeight(.medium)
-                        }
-                    } else {
-                        HStack {
-                            Image(systemName: "lock.circle.fill")
-                                .foregroundColor(.gray)
-                            Text("Locked")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                                .fontWeight(.medium)
-                        }
-                    }
+                    Text("Ripple Controls")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fontWeight(.medium)
                 }
                 
-                Text(achievement.description)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
-                
-                if !achievement.isUnlocked && achievement.progress > 0 {
+                // Ripple Control Sliders
+                VStack(spacing: 20) {
+                    // Amplitude Slider
                     VStack(spacing: 8) {
-                        Text("Progress")
-                            .font(.headline)
-                            .foregroundColor(.appText)
+                        HStack {
+                            Text("Amplitude")
+                                .font(.headline)
+                                .foregroundColor(.appText)
+                            Spacer()
+                            Text(String(format: "%.1f", amplitude))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                        }
                         
-                        ProgressView(value: achievement.progress)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(.purple)
-                            .scaleEffect(y: 2)
-                        
-                        Text("\(Int(achievement.progress * 100))% Complete")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Slider(value: Binding(
+                            get: { Double(amplitude) },
+                            set: { amplitude = Float($0) }
+                        ), in: 1.0...20.0, step: 0.1)
+                        .tint(achievement.primaryColor)
                     }
-                    .padding(.horizontal, 30)
+                    
+                    // Frequency Slider
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Frequency")
+                                .font(.headline)
+                                .foregroundColor(.appText)
+                            Spacer()
+                            Text(String(format: "%.1f", frequency))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { Double(frequency) },
+                            set: { frequency = Float($0) }
+                        ), in: 5.0...50.0, step: 0.5)
+                        .tint(achievement.primaryColor)
+                    }
+                    
+                    // Decay Slider
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Decay")
+                                .font(.headline)
+                                .foregroundColor(.appText)
+                            Spacer()
+                            Text(String(format: "%.1f", decay))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { Double(decay) },
+                            set: { decay = Float($0) }
+                        ), in: 1.0...15.0, step: 0.1)
+                        .tint(achievement.primaryColor)
+                    }
+                    
+                    // Speed Slider
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Speed")
+                                .font(.headline)
+                                .foregroundColor(.appText)
+                            Spacer()
+                            Text(String(format: "%.0f", speed))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { Double(speed) },
+                            set: { speed = Float($0) }
+                        ), in: 100.0...800.0, step: 10.0)
+                        .tint(achievement.primaryColor)
+                    }
                 }
+                .padding(.horizontal, 30)
                 
                 Spacer()
             }
@@ -173,6 +224,10 @@ struct BadgeDetailView: View {
         .background(Color.appBackground)
         .onAppear {
             startAnimations()
+            resetRippleSettings()
+        }
+        .onDisappear {
+            resetRippleSettings()
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -312,6 +367,14 @@ struct BadgeDetailView: View {
         // Start ripple animation
         rippleStartTime = Date().timeIntervalSince1970
         rippleActive = true
+    }
+    
+    private func resetRippleSettings() {
+        // Reset all ripple parameters to default values
+        amplitude = 8.0
+        frequency = 15.0
+        decay = 5.0
+        speed = 400.0
     }
 }
 
