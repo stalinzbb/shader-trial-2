@@ -18,6 +18,7 @@ struct ChecklistItem: Identifiable {
 struct ChecklistSheetView: View {
     @Environment(\.presentationMode) var presentationMode
     @Binding var currentProgress: Int
+    @State private var animatedProgress: Double = 0
     @State private var checklistItems: [ChecklistItem] = [
         ChecklistItem(title: "Set Event Date", description: "Choose the perfect date for your event", iconName: "calendar", isCompleted: true),
         ChecklistItem(title: "Choose Venue", description: "Find and book the ideal location", iconName: "location"),
@@ -60,11 +61,11 @@ struct ChecklistSheetView: View {
                                 .frame(width: 80, height: 80)
                             
                             Circle()
-                                .trim(from: 0, to: Double(currentProgress) / Double(maxProgress))
+                                .trim(from: 0, to: animatedProgress)
                                 .stroke(Color.green, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                                 .frame(width: 80, height: 80)
                                 .rotationEffect(.degrees(-90))
-                                .animation(.easeInOut(duration: 0.5), value: currentProgress)
+                                .animation(.easeInOut(duration: 1.0), value: animatedProgress)
                             
                             Text("\(currentProgress)/\(maxProgress)")
                                 .font(.system(size: 16, weight: .semibold))
@@ -106,6 +107,11 @@ struct ChecklistSheetView: View {
         }
         .onAppear {
             updateProgress()
+            // Animate progress from 0 to current value
+            animatedProgress = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                animatedProgress = Double(currentProgress) / Double(maxProgress)
+            }
         }
     }
     
@@ -116,6 +122,10 @@ struct ChecklistSheetView: View {
     
     private func updateProgress() {
         currentProgress = checklistItems.filter { $0.isCompleted }.count
+        // Update animated progress when items are toggled
+        withAnimation(.easeInOut(duration: 0.5)) {
+            animatedProgress = Double(currentProgress) / Double(maxProgress)
+        }
     }
 }
 

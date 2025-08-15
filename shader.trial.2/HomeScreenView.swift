@@ -12,6 +12,7 @@ struct HomeScreenView: View {
     @State private var showAccelerometer = false
     @State private var showFireworks = false
     @State private var showChecklistProgress = false
+    @State private var viewAppearanceID = UUID()
     
     var body: some View {
         NavigationView {
@@ -42,28 +43,32 @@ struct HomeScreenView: View {
                         LazyVStack(spacing: 16) {
                             // Ripple Effect Card
                             RippleEffectCard(
-                                title: "Ripple Effect"
+                                title: "Ripple Effect",
+                                viewAppearanceID: viewAppearanceID
                             ) {
                                 showAchievements = true
                             }
                             
                             // 3D Accelerometer Card
                             AccelerometerCard(
-                                title: "3D Accelerometer"
+                                title: "3D Accelerometer",
+                                viewAppearanceID: viewAppearanceID
                             ) {
                                 showAccelerometer = true
                             }
                             
                             // Fireworks Effect Card
                             FireworksEffectCard(
-                                title: "Fireworks Effect"
+                                title: "Fireworks Effect",
+                                viewAppearanceID: viewAppearanceID
                             ) {
                                 showFireworks = true
                             }
                             
                             // Checklist Progress Card
                             ChecklistProgressCard(
-                                title: "Checklist Progress"
+                                title: "Checklist Progress",
+                                viewAppearanceID: viewAppearanceID
                             ) {
                                 showChecklistProgress = true
                             }
@@ -77,23 +82,57 @@ struct HomeScreenView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            // Regenerate viewAppearanceID to force animation replay
+            viewAppearanceID = UUID()
+        }
         .sheet(isPresented: $showAchievements) {
             AchievementsView()
+        }
+        .onChange(of: showAchievements) { _, newValue in
+            if !newValue {
+                // When sheet is dismissed, regenerate ID to replay animations
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewAppearanceID = UUID()
+                }
+            }
         }
         .sheet(isPresented: $showAccelerometer) {
             AccelerometerView()
         }
+        .onChange(of: showAccelerometer) { _, newValue in
+            if !newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewAppearanceID = UUID()
+                }
+            }
+        }
         .sheet(isPresented: $showFireworks) {
             AchievementsFireworksView()
         }
+        .onChange(of: showFireworks) { _, newValue in
+            if !newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewAppearanceID = UUID()
+                }
+            }
+        }
         .sheet(isPresented: $showChecklistProgress) {
             ChecklistProgressView()
+        }
+        .onChange(of: showChecklistProgress) { _, newValue in
+            if !newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewAppearanceID = UUID()
+                }
+            }
         }
     }
 }
 
 struct ChecklistProgressCard: View {
     let title: String
+    let viewAppearanceID: UUID
     let action: () -> Void
     @State private var isPressed = false
     @State private var progress: Double = 0.0
@@ -166,6 +205,14 @@ struct ChecklistProgressCard: View {
                 progress = 0.5 // 6/12 = 0.5
             }
         }
+        .onChange(of: viewAppearanceID) { _, _ in
+            // Reset and replay animation when viewAppearanceID changes
+            progress = 0.0
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                progress = 0.5 // 6/12 = 0.5
+            }
+        }
     }
 }
 
@@ -229,6 +276,7 @@ struct InteractionCard: View {
 // Animated Card Components
 struct AccelerometerCard: View {
     let title: String
+    let viewAppearanceID: UUID
     let action: () -> Void
     @State private var isPressed = false
     @State private var rotationX: Double = 0
@@ -296,11 +344,24 @@ struct AccelerometerCard: View {
                 }
             }
         }
+        .onChange(of: viewAppearanceID) { _, _ in
+            // Reset and replay animation when viewAppearanceID changes
+            rotationX = 0
+            rotationY = 0
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                    rotationX = 15
+                    rotationY = 15
+                }
+            }
+        }
     }
 }
 
 struct RippleEffectCard: View {
     let title: String
+    let viewAppearanceID: UUID
     let action: () -> Void
     @State private var isPressed = false
     @State private var ripple1Scale: CGFloat = 0
@@ -401,11 +462,41 @@ struct RippleEffectCard: View {
                 }
             }
         }
+        .onChange(of: viewAppearanceID) { _, _ in
+            // Reset and replay animation when viewAppearanceID changes
+            ripple1Scale = 0
+            ripple1Opacity = 0
+            ripple2Scale = 0
+            ripple2Opacity = 0
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                // First ripple
+                withAnimation(.easeOut(duration: 1.0)) {
+                    ripple1Scale = 1.5
+                    ripple1Opacity = 1.0
+                }
+                withAnimation(.easeOut(duration: 1.0).delay(0.5)) {
+                    ripple1Opacity = 0
+                }
+                
+                // Second ripple with delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.easeOut(duration: 1.0)) {
+                        ripple2Scale = 1.5
+                        ripple2Opacity = 1.0
+                    }
+                    withAnimation(.easeOut(duration: 1.0).delay(0.5)) {
+                        ripple2Opacity = 0
+                    }
+                }
+            }
+        }
     }
 }
 
 struct FireworksEffectCard: View {
     let title: String
+    let viewAppearanceID: UUID
     let action: () -> Void
     @State private var isPressed = false
     @State private var showFireworks = false
@@ -475,6 +566,35 @@ struct FireworksEffectCard: View {
         }, perform: {})
         .onAppear {
             // Reset animation state
+            showFireworks = false
+            particleOffsets = []
+            particleOpacities = []
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                showFireworks = true
+                
+                // Initialize particle positions and opacities
+                particleOffsets = (0..<8).map { i in
+                    let angle = Double(i) * 45 * .pi / 180
+                    return (CGFloat(cos(angle) * 15), CGFloat(sin(angle) * 15))
+                }
+                particleOpacities = Array(repeating: 1.0, count: 8)
+                
+                // Animate particles
+                withAnimation(.easeOut(duration: 1.0)) {
+                    particleOffsets = (0..<8).map { i in
+                        let angle = Double(i) * 45 * .pi / 180
+                        return (CGFloat(cos(angle) * 25), CGFloat(sin(angle) * 25))
+                    }
+                }
+                
+                withAnimation(.easeOut(duration: 1.0).delay(0.5)) {
+                    particleOpacities = Array(repeating: 0.0, count: 8)
+                }
+            }
+        }
+        .onChange(of: viewAppearanceID) { _, _ in
+            // Reset and replay animation when viewAppearanceID changes
             showFireworks = false
             particleOffsets = []
             particleOpacities = []

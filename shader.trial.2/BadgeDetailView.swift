@@ -127,9 +127,9 @@ struct BadgeDetailView: View {
                         .multilineTextAlignment(.center)
                     
                     Text("Ripple Controls")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .fontWeight(.medium)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.appText)
                 }
                 
                 // Ripple Control Sliders
@@ -143,7 +143,7 @@ struct BadgeDetailView: View {
                             Spacer()
                             Text(String(format: "%.1f", amplitude))
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.appText)
                                 .fontWeight(.medium)
                         }
                         
@@ -163,7 +163,7 @@ struct BadgeDetailView: View {
                             Spacer()
                             Text(String(format: "%.1f", frequency))
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.appText)
                                 .fontWeight(.medium)
                         }
                         
@@ -183,7 +183,7 @@ struct BadgeDetailView: View {
                             Spacer()
                             Text(String(format: "%.1f", decay))
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.appText)
                                 .fontWeight(.medium)
                         }
                         
@@ -203,7 +203,7 @@ struct BadgeDetailView: View {
                             Spacer()
                             Text(String(format: "%.0f", speed))
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.appText)
                                 .fontWeight(.medium)
                         }
                         

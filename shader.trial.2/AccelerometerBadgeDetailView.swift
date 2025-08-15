@@ -102,17 +102,10 @@ struct AccelerometerBadgeDetailView: View {
                 
                 // Motion Controls Section (moved out of card container)
                 VStack(spacing: 16) {
-                    VStack(spacing: 4) {
-                        Text("Motion Controls")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color(hex: "333333"))
-                        
-                        Text("Adjust the sensitivity and range of the 3D motion effects")
-                            .font(.caption)
-                            .foregroundColor(Color(hex: "757575"))
-                            .multilineTextAlignment(.center)
-                    }
+                    Text("Motion Controls")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color(hex: "333333"))
                     
                     VStack(spacing: 12) {
                         // Pitch Angle Control
