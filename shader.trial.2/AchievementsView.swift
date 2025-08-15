@@ -45,11 +45,19 @@ struct AchievementsView: View {
                 
                 ScrollView {
                     VStack(spacing: 30) {
-                        Text("Achievements")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.appText)
-                            .padding(.top, 20)
+                        VStack(spacing: 8) {
+                            Text("Ripple Effect")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.appText)
+                            
+                            Text("Tap achievement badges to create expanding ripple effects with dynamic colors")
+                                .font(.subheadline)
+                                .foregroundColor(.appText.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                        }
+                        .padding(.top, 20)
                         
                         let columns = [
                             GridItem(.flexible()),

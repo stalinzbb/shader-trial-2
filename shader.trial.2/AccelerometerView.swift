@@ -34,11 +34,19 @@ struct AccelerometerView: View {
                 
                 ScrollView {
                     VStack(spacing: 30) {
-                        Text("3D Accelerometer Badges")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.appText)
-                            .padding(.top, 20)
+                        VStack(spacing: 8) {
+                            Text("3D Accelerometer")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.appText)
+                            
+                            Text("Tilt your device to see achievement badges respond with realistic 3D motion")
+                                .font(.subheadline)
+                                .foregroundColor(.appText.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                        }
+                        .padding(.top, 20)
                         
                         let columns = [
                             GridItem(.flexible()),

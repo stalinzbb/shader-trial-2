@@ -16,6 +16,12 @@ struct AccelerometerBadgeDetailView: View {
     @State private var gradientOffset: Double = -350 // Start off-screen (further back for larger rectangle)
     private let motionManager = CMMotionManager()
     
+    // Control parameters
+    @State private var maxPitchAngle: Double = 8.0
+    @State private var maxRollAngle: Double = 45.0
+    @State private var pitchSensitivity: Double = 0.3
+    @State private var rollSensitivity: Double = 0.15
+    
     // Check if this badge should have gradient shimmer effect (badges 7-12)
     private var shouldShowGradientShimmer: Bool {
         let badgeNumber = Int(achievement.badgeImageName.replacingOccurrences(of: "achievement-badge-", with: "")) ?? 0
@@ -30,7 +36,8 @@ struct AccelerometerBadgeDetailView: View {
                     .frame(height: 320)
                     .clipped()
                 
-                VStack {
+                // Centered badge in header
+                HStack {
                     Spacer()
                     
                     // Accelerometer-controlled Badge with optional gradient shimmer
@@ -85,57 +92,95 @@ struct AccelerometerBadgeDetailView: View {
             
             // Content Section
             VStack(spacing: 20) {
-                VStack(spacing: 8) {
-                    Text(achievement.title)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(Color(hex: "333333"))
-                        .multilineTextAlignment(.center)
-                    
-                    if achievement.isUnlocked {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("Unlocked")
-                                .font(.subheadline)
-                                .foregroundColor(.green)
-                                .fontWeight(.medium)
-                        }
-                    } else {
-                        HStack {
-                            Image(systemName: "lock.circle.fill")
-                                .foregroundColor(.gray)
-                            Text("Locked")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                                .fontWeight(.medium)
-                        }
-                    }
-                }
-                
-                Text(achievement.description)
-                    .font(.body)
-                    .foregroundColor(Color(hex: "757575"))
+                // Achievement Title Only
+                Text(achievement.title)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color(hex: "333333"))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
                 
-                if !achievement.isUnlocked && achievement.progress > 0 {
-                    VStack(spacing: 8) {
-                        Text("Progress")
+                // Motion Controls Section (moved out of card container)
+                VStack(spacing: 16) {
+                    VStack(spacing: 4) {
+                        Text("Motion Controls")
                             .font(.headline)
-                            .foregroundColor(Color(hex: "757575"))
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(hex: "333333"))
                         
-                        ProgressView(value: achievement.progress)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(.purple)
-                            .scaleEffect(y: 2)
-                        
-                        Text("\(Int(achievement.progress * 100))% Complete")
+                        Text("Adjust the sensitivity and range of the 3D motion effects")
                             .font(.caption)
                             .foregroundColor(Color(hex: "757575"))
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 30)
+                    
+                    VStack(spacing: 12) {
+                        // Pitch Angle Control
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Pitch Range")
+                                    .font(.subheadline)
+                                    .foregroundColor(Color(hex: "333333"))
+                                Spacer()
+                                Text("±\(String(format: "%.0f", maxPitchAngle))°")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "757575"))
+                            }
+                            
+                            Slider(value: $maxPitchAngle, in: 5...30, step: 1)
+                                .accentColor(.purple)
+                        }
+                        
+                        // Roll Angle Control
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Roll Range")
+                                    .font(.subheadline)
+                                    .foregroundColor(Color(hex: "333333"))
+                                Spacer()
+                                Text("±\(String(format: "%.0f", maxRollAngle))°")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "757575"))
+                            }
+                            
+                            Slider(value: $maxRollAngle, in: 15...90, step: 5)
+                                .accentColor(.purple)
+                        }
+                        
+                        // Animation Speed Controls
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Pitch Response")
+                                    .font(.subheadline)
+                                    .foregroundColor(Color(hex: "333333"))
+                                Spacer()
+                                Text("\(String(format: "%.1f", pitchSensitivity))s")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "757575"))
+                            }
+                            
+                            Slider(value: $pitchSensitivity, in: 0.1...1.0, step: 0.1)
+                                .accentColor(.purple)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Roll Response")
+                                    .font(.subheadline)
+                                    .foregroundColor(Color(hex: "333333"))
+                                Spacer()
+                                Text("\(String(format: "%.1f", rollSensitivity))s")
+                                    .font(.caption)
+                                    .foregroundColor(Color(hex: "757575"))
+                            }
+                            
+                            Slider(value: $rollSensitivity, in: 0.1...1.0, step: 0.1)
+                                .accentColor(.purple)
+                        }
+                    }
                 }
+                .padding(.horizontal, 30)
+                .padding(.top, 10)
                 
                 Spacer()
             }
@@ -173,17 +218,17 @@ struct AccelerometerBadgeDetailView: View {
             let pitchInDegrees = motion.attitude.pitch * 180.0 / .pi
             let rollInDegrees = motion.attitude.roll * 180.0 / .pi
             
-            // Clamp values for optimal motion feel
-            let clampedPitch = max(-8.0, min(8.0, pitchInDegrees))    // Further reduced pitch movement
-            let clampedRoll = max(-45.0, min(45.0, rollInDegrees))    // Increased roll angle by 10°
+            // Clamp values using control parameters
+            let clampedPitch = max(-maxPitchAngle, min(maxPitchAngle, pitchInDegrees))
+            let clampedRoll = max(-maxRollAngle, min(maxRollAngle, rollInDegrees))
             
-            // Apply different animation speeds for pitch and roll
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0)) {
+            // Apply animation speeds using control parameters
+            withAnimation(.spring(response: pitchSensitivity, dampingFraction: 0.6, blendDuration: 0)) {
                 pitchRotation = clampedPitch  // X-axis rotation (tilt up/down)
             }
             
-            withAnimation(.spring(response: 0.15, dampingFraction: 0.5, blendDuration: 0)) {
-                rollRotation = clampedRoll    // Y-axis rotation (tilt left/right) - faster animation
+            withAnimation(.spring(response: rollSensitivity, dampingFraction: 0.5, blendDuration: 0)) {
+                rollRotation = clampedRoll    // Y-axis rotation (tilt left/right)
             }
             
             // Update gradient shimmer effect based on accelerometer data (only for shimmer badges)

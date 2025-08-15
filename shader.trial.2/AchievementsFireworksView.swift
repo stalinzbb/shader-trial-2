@@ -34,11 +34,19 @@ struct AchievementsFireworksView: View {
                 
                 ScrollView {
                     VStack(spacing: 30) {
-                        Text("Achievement Fireworks")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.appText)
-                            .padding(.top, 20)
+                        VStack(spacing: 8) {
+                            Text("Fireworks Effect")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.appText)
+                            
+                            Text("Tap achievement badges to trigger spectacular fireworks animations with particle bursts")
+                                .font(.subheadline)
+                                .foregroundColor(.appText.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                        }
+                        .padding(.top, 20)
                         
                         let columns = [
                             GridItem(.flexible()),

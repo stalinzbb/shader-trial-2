@@ -20,20 +20,38 @@ struct AchievementFireworksView: View {
     // Fireworks animation states
     @State private var fireworksActive = false
     @State private var fireworksStartTime: TimeInterval = 0
-    @State private var fireworkParticles: [FireworkParticle] = []
+    @State private var fireworksIntensity: Float = 0.0
+    @State private var fireworksParticles: [FireworkParticle] = []
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header with basic background color and fireworks effects
+            // Header with Canvas fireworks background
             ZStack {
-                Color(hex: "e9ebed")
+                // Dark background for fireworks visibility
+                Rectangle()
+                    .fill(Color.black.opacity(0.9))
+                    .frame(height: 320)
+                
+                // Canvas fireworks background (behind badge)
+                TimelineView(.animation) { context in
+                    Canvas { canvasContext, size in
+                        drawFireworks(
+                            context: canvasContext,
+                            size: size,
+                            time: context.date.timeIntervalSince1970 - fireworksStartTime,
+                            intensity: fireworksActive ? fireworksIntensity : 0.0,
+                            particles: fireworksParticles
+                        )
+                    }
                     .frame(height: 320)
                     .clipped()
+                }
+                .allowsHitTesting(false) // Ensure fireworks don't block badge interactions
                 
                 VStack {
                     Spacer()
                     
-                    // Interactive Animated Badge
+                    // Interactive Animated Badge (on top of fireworks)
                     ZStack {
                         // Subtle glow effect
                         Circle()
@@ -52,34 +70,20 @@ struct AchievementFireworksView: View {
                             .blur(radius: 20)
                             .opacity(isPressed ? 0.8 : 0.4)
                         
-                        // Badge with fireworks overlay
-                        TimelineView(.animation) { context in
-                            ZStack {
-                                Image(achievement.badgeImageName)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 140, height: 140)
-                                    .opacity(1.0)
-                                    .saturation(1.0)
-                                    .scaleEffect(badgeScale)
-                                    .rotation3DEffect(
-                                        .degrees(rotationAngle + badgeRotation),
-                                        axis: (x: 0, y: 1, z: 0),
-                                        perspective: 0.3
-                                    )
-                                    .offset(y: bounceOffset)
-                                
-                                // Canvas-based fireworks overlay
-                                if fireworksActive {
-                                    FireworksOverlay(
-                                        particles: fireworkParticles,
-                                        currentTime: context.date.timeIntervalSince1970,
-                                        startTime: fireworksStartTime,
-                                        achievement: achievement
-                                    )
-                                }
-                            }
-                        }
+                        // Badge with 3D animations
+                        Image(achievement.badgeImageName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 140, height: 140)
+                            .opacity(1.0)
+                            .saturation(1.0)
+                            .scaleEffect(badgeScale)
+                            .rotation3DEffect(
+                                .degrees(rotationAngle + badgeRotation),
+                                axis: (x: 0, y: 1, z: 0),
+                                perspective: 0.3
+                            )
+                            .offset(y: bounceOffset)
                     }
                     
                     Spacer()
@@ -92,7 +96,7 @@ struct AchievementFireworksView: View {
                     Text(achievement.title)
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.appText)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
                     if achievement.isUnlocked {
@@ -107,10 +111,10 @@ struct AchievementFireworksView: View {
                     } else {
                         HStack {
                             Image(systemName: "lock.circle.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white.opacity(0.7))
                             Text("Locked")
                                 .font(.subheadline)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white.opacity(0.7))
                                 .fontWeight(.medium)
                         }
                     }
@@ -145,9 +149,9 @@ struct AchievementFireworksView: View {
                 Spacer()
             }
             .padding(.top, 30)
-            .background(Color.appBackground)
+            .background(Color.black.opacity(0.95))
         }
-        .background(Color.appBackground)
+        .background(Color.black.opacity(0.95))
         .onAppear {
             startAnimations()
         }
@@ -202,116 +206,137 @@ struct AchievementFireworksView: View {
     private func triggerFireworks() {
         fireworksActive = true
         fireworksStartTime = Date().timeIntervalSince1970
-        createFireworkParticles()
+        
+        // Generate firework particles
+        generateFireworkParticles()
+        
+        // Animate intensity for dramatic effect
+        withAnimation(.easeIn(duration: 0.2)) {
+            fireworksIntensity = 1.0
+        }
+        
+        // Fade out intensity gradually
+        withAnimation(.easeOut(duration: 2.5).delay(0.5)) {
+            fireworksIntensity = 0.2
+        }
         
         // Auto-disable after animation duration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
             fireworksActive = false
-            fireworkParticles.removeAll()
+            fireworksIntensity = 0.0
+            fireworksParticles.removeAll()
         }
     }
     
-    private func createFireworkParticles() {
-        fireworkParticles.removeAll()
+    private func generateFireworkParticles() {
+        fireworksParticles.removeAll()
         
-        // Create multiple firework bursts
-        for burst in 0..<3 {
-            let burstDelay = Double(burst) * 0.3
-            let burstCenter = CGPoint(
-                x: CGFloat.random(in: -30...30),
-                y: CGFloat.random(in: -40...40)
+        // Generate multiple firework explosions
+        for explosionIndex in 0..<5 {
+            let centerX = Double.random(in: 0.2...0.8)
+            let centerY = Double.random(in: 0.3...0.7)
+            let explosionColor = [Color.red, Color.blue, Color.green, Color.yellow, Color.purple].randomElement() ?? Color.red
+            let delay = Double(explosionIndex) * 0.3
+            
+            // Generate particles for this explosion
+            for particleIndex in 0..<75 {
+                let angle = Double.random(in: 0...(2 * Double.pi))
+                let speed = Double.random(in: 0.3...0.8)
+                let life = Double.random(in: 2.0...4.0)
+                
+                let particle = FireworkParticle(
+                    id: explosionIndex * 100 + particleIndex,
+                    startX: centerX,
+                    startY: centerY,
+                    velocityX: cos(angle) * speed,
+                    velocityY: sin(angle) * speed,
+                    color: explosionColor,
+                    life: life,
+                    delay: delay
+                )
+                
+                fireworksParticles.append(particle)
+            }
+        }
+    }
+    
+    private func drawFireworks(context: GraphicsContext, size: CGSize, time: Double, intensity: Float, particles: [FireworkParticle]) {
+        // Always draw something for debugging - even when not active, show static particles
+        if !fireworksActive || intensity <= 0 {
+            // Draw debug indicator
+            context.fill(
+                Path(CGRect(x: 10, y: 10, width: 20, height: 20)),
+                with: .color(.white.opacity(0.5))
+            )
+            return
+        }
+        
+        // Draw debug info
+        context.fill(
+            Path(CGRect(x: size.width - 50, y: 10, width: 40, height: 20)),
+            with: .color(.green)
+        )
+        
+        for particle in particles {
+            let particleTime = max(0, time - particle.delay)
+            guard particleTime < particle.life else { continue }
+            
+            // Calculate particle position
+            let progress = particleTime / particle.life
+            let x = particle.startX + particle.velocityX * particleTime * 0.5 // slower movement
+            let y = particle.startY + particle.velocityY * particleTime * 0.5 + 0.1 * particleTime * particleTime // less gravity
+            
+            // Ensure particles stay within bounds
+            guard x >= 0 && x <= 1 && y >= 0 && y <= 1 else { continue }
+            
+            // Calculate opacity (fade out over time) - much brighter
+            let opacity = min(1.0, (1.0 - progress * 0.8) * Double(intensity) * 3.0)
+            guard opacity > 0.05 else { continue }
+            
+            // Draw particle
+            let pixelX = x * size.width
+            let pixelY = y * size.height
+            
+            let particleSize = (1.0 - progress * 0.3) * 6.0 // even larger particles
+            let rect = CGRect(
+                x: pixelX - particleSize / 2,
+                y: pixelY - particleSize / 2,
+                width: particleSize,
+                height: particleSize
             )
             
-            // Create particles for this burst
-            for _ in 0..<25 {
-                let particle = FireworkParticle(
-                    startPosition: burstCenter,
-                    velocity: CGPoint(
-                        x: CGFloat.random(in: -150...150),
-                        y: CGFloat.random(in: (-200)...(-50))
-                    ),
-                    color: [achievement.primaryColor, achievement.secondaryColor, .yellow, .orange, .red].randomElement()!,
-                    startDelay: burstDelay
-                )
-                fireworkParticles.append(particle)
-            }
-        }
-    }
-}
-
-struct FireworkParticle: Identifiable {
-    let id = UUID()
-    let startPosition: CGPoint
-    let velocity: CGPoint
-    let color: Color
-    let startDelay: TimeInterval
-    let gravity: CGFloat = 300
-    let lifetime: TimeInterval = 2.5
-}
-
-struct FireworksOverlay: View {
-    let particles: [FireworkParticle]
-    let currentTime: TimeInterval
-    let startTime: TimeInterval
-    let achievement: Achievement
-    
-    var body: some View {
-        Canvas { context, size in
-            let elapsedTime = currentTime - startTime
+            // Draw main particle with full opacity
+            context.fill(
+                Path(ellipseIn: rect),
+                with: .color(particle.color.opacity(opacity))
+            )
             
-            for particle in particles {
-                let particleAge = elapsedTime - particle.startDelay
-                
-                if particleAge > 0 && particleAge < particle.lifetime {
-                    let progress = particleAge / particle.lifetime
-                    
-                    // Physics simulation
-                    let x = particle.startPosition.x + particle.velocity.x * CGFloat(particleAge)
-                    let y = particle.startPosition.y + particle.velocity.y * CGFloat(particleAge) + 0.5 * particle.gravity * CGFloat(particleAge * particleAge)
-                    
-                    let position = CGPoint(
-                        x: size.width / 2 + x,
-                        y: size.height / 2 + y
-                    )
-                    
-                    // Fade out over time
-                    let alpha = 1.0 - CGFloat(progress)
-                    let particleSize = CGFloat(6 - progress * 4)
-                    
-                    // Draw particle
-                    let rect = CGRect(
-                        x: position.x - particleSize / 2,
-                        y: position.y - particleSize / 2,
-                        width: particleSize,
-                        height: particleSize
-                    )
-                    
-                    context.fill(
-                        Path(ellipseIn: rect),
-                        with: .color(particle.color.opacity(alpha))
-                    )
-                    
-                    // Add glow effect for the first half of lifetime
-                    if progress < 0.5 {
-                        let glowSize = particleSize * 2
-                        let glowRect = CGRect(
-                            x: position.x - glowSize / 2,
-                            y: position.y - glowSize / 2,
-                            width: glowSize,
-                            height: glowSize
-                        )
-                        
-                        context.fill(
-                            Path(ellipseIn: glowRect),
-                            with: .color(particle.color.opacity(alpha * 0.3))
-                        )
-                    }
-                }
-            }
+            // Add bright glow effect
+            let glowSize = particleSize * 1.8
+            let glowRect = CGRect(
+                x: pixelX - glowSize / 2,
+                y: pixelY - glowSize / 2,
+                width: glowSize,
+                height: glowSize
+            )
+            context.fill(
+                Path(ellipseIn: glowRect),
+                with: .color(particle.color.opacity(opacity * 0.4))
+            )
         }
-        .frame(width: 300, height: 300)
-        .allowsHitTesting(false)
     }
+}
+
+// Firework particle data structure
+struct FireworkParticle: Identifiable {
+    let id: Int
+    let startX: Double
+    let startY: Double
+    let velocityX: Double
+    let velocityY: Double
+    let color: Color
+    let life: Double
+    let delay: Double
 }
 
 
