@@ -12,6 +12,7 @@ struct HomeScreenView: View {
     @State private var showAccelerometer = false
     @State private var showFireworks = false
     @State private var showChecklistProgress = false
+    @State private var showMetallicBadge = false
     @State private var viewAppearanceID = UUID()
     
     var body: some View {
@@ -72,6 +73,13 @@ struct HomeScreenView: View {
                             ) {
                                 showChecklistProgress = true
                             }
+                            
+                            // Metallic Badge Card
+                            MetallicBadgeCard(
+                                title: "Metallic Badge"
+                            ) {
+                                showMetallicBadge = true
+                            }
                         }
                         .padding(.horizontal, 20)
                     }
@@ -121,6 +129,16 @@ struct HomeScreenView: View {
             ChecklistProgressView()
         }
         .onChange(of: showChecklistProgress) { _, newValue in
+            if !newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewAppearanceID = UUID()
+                }
+            }
+        }
+        .sheet(isPresented: $showMetallicBadge) {
+            MetallicBadgeView()
+        }
+        .onChange(of: showMetallicBadge) { _, newValue in
             if !newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     viewAppearanceID = UUID()
@@ -622,6 +640,57 @@ struct FireworksEffectCard: View {
                 }
             }
         }
+    }
+}
+
+struct MetallicBadgeCard: View {
+    let title: String
+    let action: () -> Void
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // Empty Thumbnail Container
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: 60, height: 60)
+                }
+                
+                // Title
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(.leading)
+                
+                Spacer()
+                
+                // Caret
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .shadow(
+                        color: .black.opacity(0.08),
+                        radius: 8,
+                        x: 0,
+                        y: 2
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 
