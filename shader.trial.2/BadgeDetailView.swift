@@ -239,7 +239,7 @@ struct BadgeDetailView: View {
         // Faster, more energetic bounce with spring effects
         withAnimation(
             .interpolatingSpring(stiffness: 150, damping: 12, initialVelocity: 4)
-            .delay(0.2)
+            .delay(0.5)
         ) {
             bounceOffset = -44  // Even higher bounce
             badgeScale = 1.08   // More scale
@@ -248,7 +248,7 @@ struct BadgeDetailView: View {
         // Faster settle back to natural position with bouncy spring
         withAnimation(
             .interpolatingSpring(stiffness: 180, damping: 16, initialVelocity: 0)
-            .delay(0.7)
+            .delay(1.0)
         ) {
             bounceOffset = 0
             badgeScale = 1.0
@@ -258,7 +258,7 @@ struct BadgeDetailView: View {
         // Phase 1: Moderately slow start (bottom of bounce)
         withAnimation(
             .easeIn(duration: 0.3).speed(1.2)
-            .delay(0.2)
+            .delay(0.5)
         ) {
             rotationAngle = 120  // First third - moderately slow but faster
         }
@@ -266,7 +266,7 @@ struct BadgeDetailView: View {
         // Phase 2: Faster speed (middle to top of bounce)  
         withAnimation(
             .linear(duration: 0.25)
-            .delay(0.5)
+            .delay(0.8)
         ) {
             rotationAngle = 240  // Fast middle section
         }
@@ -274,7 +274,7 @@ struct BadgeDetailView: View {
         // Phase 3: Moderately slow finish (back to bottom)
         withAnimation(
             .easeOut(duration: 0.35).speed(1.2)
-            .delay(0.75)
+            .delay(1.05)
         ) {
             rotationAngle = 360  // Moderately slow finish but faster
         }

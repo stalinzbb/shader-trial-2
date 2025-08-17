@@ -59,13 +59,15 @@ struct HomeScreenView: View {
                                 showAccelerometer = true
                             }
                             
-                            // Fireworks Effect Card
+                            // Fireworks Effect Card - Hidden
+                            /*
                             FireworksEffectCard(
                                 title: "Fireworks Effect",
                                 viewAppearanceID: viewAppearanceID
                             ) {
                                 showFireworks = true
                             }
+                            */
                             
                             // Checklist Progress Card
                             ChecklistProgressCard(
@@ -82,12 +84,14 @@ struct HomeScreenView: View {
                                 showMetallicBadge = true
                             }
                             
-                            // Material Badge Card
+                            // Material Badge Card - Hidden
+                            /*
                             MaterialBadgeCard(
                                 title: "Material Badge"
                             ) {
                                 showMaterialBadge = true
                             }
+                            */
                         }
                         .padding(.horizontal, 20)
                     }

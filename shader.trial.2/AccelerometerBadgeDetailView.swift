@@ -20,7 +20,7 @@ struct AccelerometerBadgeDetailView: View {
     @State private var maxPitchAngle: Double = 8.0
     @State private var maxRollAngle: Double = 45.0
     @State private var pitchSensitivity: Double = 0.3
-    @State private var rollSensitivity: Double = 0.15
+    @State private var rollSensitivity: Double = 1.0
     
     // Check if this badge should have gradient shimmer effect (badges 7-12)
     private var shouldShowGradientShimmer: Bool {
@@ -167,7 +167,7 @@ struct AccelerometerBadgeDetailView: View {
                                     .foregroundColor(Color(hex: "757575"))
                             }
                             
-                            Slider(value: $rollSensitivity, in: 0.1...1.0, step: 0.1)
+                            Slider(value: $rollSensitivity, in: 0.1...2.0, step: 0.1)
                                 .accentColor(.purple)
                         }
                     }
@@ -220,8 +220,8 @@ struct AccelerometerBadgeDetailView: View {
                 pitchRotation = clampedPitch  // X-axis rotation (tilt up/down)
             }
             
-            withAnimation(.spring(response: rollSensitivity, dampingFraction: 0.5, blendDuration: 0)) {
-                rollRotation = clampedRoll    // Y-axis rotation (tilt left/right)
+            withAnimation(.spring(response: rollSensitivity, dampingFraction: 0.7, blendDuration: 0)) {
+                rollRotation = -clampedRoll    // Y-axis rotation (opposite to device tilt left/right)
             }
             
             // Update gradient shimmer effect based on accelerometer data (only for shimmer badges)

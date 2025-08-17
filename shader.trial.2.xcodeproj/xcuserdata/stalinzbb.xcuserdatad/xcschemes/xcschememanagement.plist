@@ -6,8 +6,28 @@
 	<dict>
 		<key>shader.trial.2.xcscheme_^#shared#^_</key>
 		<dict>
+			<key>isShown</key>
+			<true/>
 			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>2072401E2E30A74F009FCA2D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>207240302E30A751009FCA2D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>2072403A2E30A751009FCA2D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
