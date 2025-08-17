@@ -55,7 +55,6 @@ class SVGTessellator {
     
     static func tessellateHexagonStroke() -> [MaterialVertex] {
         // Create a simple stroke outline - larger and more visible
-        let strokeWidth: Float = 0.1
         
         let outerVertices: [SIMD2<Float>] = [
             SIMD2<Float>(-0.7, -0.4),

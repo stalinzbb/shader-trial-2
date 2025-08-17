@@ -16,11 +16,16 @@ struct MetallicBadgeView: View {
     @State private var artworkMetallic: Float = 0.1
     @State private var globalRoughness: Float = 0.3
     
-    // Lighting control parameters
-    @State private var lightIntensity: Float = 1.0
-    @State private var topLightStrength: Float = 0.8
-    @State private var rightLightStrength: Float = 0.6
-    @State private var rimLightStrength: Float = 0.4
+    // Lighting control parameters - increased for better visibility
+    @State private var lightIntensity: Float = 1.4
+    @State private var topLightStrength: Float = 1.0
+    @State private var rightLightStrength: Float = 0.8
+    @State private var rimLightStrength: Float = 0.6
+    
+    // Rotation control parameters
+    @State private var rotationX: Float = 0.0
+    @State private var rotationY: Float = 0.0
+    @State private var lastDragValue: CGSize = .zero
     
     var body: some View {
         NavigationView {
@@ -59,11 +64,33 @@ struct MetallicBadgeView: View {
                             lightIntensity: lightIntensity,
                             topLightStrength: topLightStrength,
                             rightLightStrength: rightLightStrength,
-                            rimLightStrength: rimLightStrength
+                            rimLightStrength: rimLightStrength,
+                            rotationX: rotationX,
+                            rotationY: rotationY
                         )
                         .frame(width: 300, height: 300)
                         .background(Color.white)
-                        .clipped()
+                        // Remove clipping to allow 3D badge to extend outside bounds
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    let deltaX = value.translation.width - lastDragValue.width
+                                    let deltaY = value.translation.height - lastDragValue.height
+                                    
+                                    // Convert drag to rotation with restricted limits
+                                    rotationY += Float(deltaX) * 0.01  // Roll rotation (full range)
+                                    rotationX += Float(deltaY) * 0.005 // Pitch rotation (very limited)
+                                    
+                                    // Clamp rotations: roll allows full rotation, pitch is very limited
+                                    rotationX = max(-0.15, min(0.15, rotationX)) // ~±8.5 degrees pitch
+                                    rotationY = max(-Float.pi, min(Float.pi, rotationY)) // Full roll rotation
+                                    
+                                    lastDragValue = value.translation
+                                }
+                                .onEnded { _ in
+                                    lastDragValue = .zero
+                                }
+                        )
                         Spacer()
                     }
                     
